@@ -7,6 +7,7 @@ import discord
 import random
 import time
 import pypubg
+import lolInfo
 
 from discord.ext import commands
 
@@ -18,6 +19,10 @@ import urllib.parse
 #client = discord.Client()
 
 bot = commands.Bot(command_prefix='!')
+#image=open("./tier-icons/Provisional.png", "rb")
+#ima=image.read()
+#tester=bot.create_custom_emoji(discord.server,name="name",image=ima)
+
 
 # 1-6에서 생성된 토큰을 이곳에 입력해주세요.
 token = "NDczNzE3OTYzODkyMDY0Mjg2.DkGAYw.Q2xSsrR_JzJNFTxJnpAnyr4D_dQ"
@@ -31,42 +36,57 @@ async def on_ready():
 	print('='*10)
 
 
+
 @bot.command(pass_context=True)
 async def test(ctx):
 	print('hmm')
-	await bot.say('test say {0}'.format(ctx.message.content))
 
 @bot.command(pass_context=True)
 async def dice(ctx,member: discord.Member = None):
 	dice = random.randrange(1,7)
 	if member is None:
 		member = ctx.message.author
-	chanel = ctx.message.channel
-	id = member.id
-#	id = id.split('#')[0]
 
-	print('dice start {0}  dice %d'.format(member)%dice)
-	await bot.say(id)
+		msg=discord.Embed(title='주사위 결과',description='%d'%dice,colour=0xDEADBF)
 
-	await bot.say("<"+id+">님이 주사위를 굴렸습니다.")
-	#awiat client.send_message(channel,"<@"+id+">님이 주사위를 굴렸습니다.")
+		if member.avatar_url=="":
+			icon=member.default_avatar_url
+		else:
+			icon=member.avatar_url
 
-	time.sleep(1)
-	await bot.say('주사위의 결과는 %d입니다'%dice)
+		msg.set_author(name=member.display_name,icon_url=icon)
+		msg.add_field(name="test field",value="test value",inline=True)
+
+		await bot.say(embed=msg)
+
 
 @bot.command(pass_context=True)
 async def num(ctx,member: discord.Member = None):
 	number = random.randrange(1,101)
 	if member is None:
 		member = ctx.message.author
-	channel = ctx.message.channel
-	id = member.id
 
 	print('숫자 뽑기 시작 {0} 숫자는 %d'.format(member)%number)
 	#await bot.say("<"+id+">님이 숫자를 뽑았습니다.")
-	await bot.send_message(channel,"<@"+id+">님이 숫자를 뽑았습니다.")
-	time.sleep(1)
-	await bot.say('숫자의 결과는 %d입니다'%number)
+	#await bot.send_message(channel,"<@"+id+">님이 숫자를 뽑았습니다.")
+
+	#time.sleep(1)
+	#await bot.say('숫자의 결과는 %d입니다'%number)
+	await bot.say(embed=msg)
+	msg=discord.Embed(title='숫자 뽑기 결과',description='%d'%number,colour=0xDEADBF)
+
+	if member.avatar_url=="":
+		icon=member.default_avatar_url
+	else:
+		icon=member.avatar_url
+
+	msg.set_author(name=member.display_name,icon_url=icon)
+	await bot.say(embed=msg)
+
+	#test=discord.Embed(title='My Embed Title', description='My Embed Content.', colour=0xDEADBF)
+	#test.set_author(name='Someone', icon_url=bot.user.default_avatar_url)
+	#await bot.say(msg)
+	#await bot.say(embed=test)
 
 @bot.command(pass_context=True)
 async def vote(ctx,arg1):
@@ -79,53 +99,66 @@ async def pubg(*args):
 
 @bot.command()
 async def lol(*args):
-	api_key="RGAPI-68f20a91-908e-4c30-94fa-b800e5555e5f"
+	#
+	print("========3=4=324=3=432=423=3=432=4==")
 	if len(args)>0:
 		mode = args[0]
 	name=""
+	lol_info=lolInfo.Info()
 	check = 0
 	if mode=="id":
 		for i in args[1:]:
 			name += i
 			if check != 0:
 				name += "%20"
+		lol_info.setVersion()
+		lol_info.setInfo(name)
+		lol_info.setSoloRank()
+		msg=lol_info.message(0)
+		await bot.say(embed=msg)
 
 
-		name_url=urllib.parse.quote_plus(name)
-		print(name)
-		print(name_url)
-
-		url=u"https://kr.api.riotgames.com/lol/summoner/v3/summoners/by-name/"+name_url+'?api_key='+api_key
-		response = urllib.request.urlopen(url)
-
-		info = json.load(response)
-		id = info['id']
-		url=u"https://kr.api.riotgames.com/lol/league/v3/positions/by-summoner/"+str(id)+'?api_key='+api_key
-		response = urllib.request.urlopen(url)
-		tier_info = json.load(response)
-
-		print(info)
-		print(tier_info)
-		msg = \
-		"ID: "+info['name']+\
-		"\nLevel: %d"%info['summonerLevel']
-
-		cnt = len(tier_info)
-
-		for i in tier_info:
-			if i["queueType"]=="RANKED_SOLO_5x5":
-				msg+="\n------솔랭------"
-			elif i["queueType"]=="RANKED_FLEX_TT":
-				continue
-			elif i["queueType"]=="RANKED_FLEX_SR":
-				msg+="\n-----자유랭-----"
-			msg+="\n랭크: "+i['tier']+" "+i['rank']+" %dLP"%i['leaguePoints']+\
-			"\n승: %d 패: %d"%(i['wins'],i['losses'])+\
-			"\n승률: %.2lf%%"%(i['wins']/(i['wins']+i['losses'])*100)+\
-			"\n----------------\n"
 
 
-		await bot.say(msg)
+	#api_key="RGAPI-66e6e8e6-cb0a-496f-92ff-bbe7dab825ab"
+	#name_url=urllib.parse.quote_plus(name)
+	#print(name)
+	#print(name_url)
+
+	#url=u"https://kr.api.riotgames.com/lol/summoner/v3/summoners/by-name/"+name_url+'?api_key='+api_key
+	#response = urllib.request.urlopen(url)
+
+	#info = json.load(response)
+	#id = info['id']
+	#url=u"https://kr.api.riotgames.com/lol/league/v3/positions/by-summoner/"+str(id)+'?api_key='+api_key
+	#response = urllib.request.urlopen(url)
+	#tier_info = json.load(response)
+
+	##print(info)
+	##print(tier_info)
+	#msg = \
+	#"ID: "+info['name']+\
+	#"\nLevel: %d"%info['summonerLevel']
+
+	#cnt = len(tier_info)
+
+	#for i in tier_info:
+	#	if i["queueType"]=="RANKED_SOLO_5x5":
+	#		msg+="\n------솔랭------"
+	#	elif i["queueType"]=="RANKED_FLEX_TT":
+	#		continue
+	#	elif i["queueType"]=="RANKED_FLEX_SR":
+	#		msg+="\n-----자유랭-----"
+	#	msg+="\n랭크: "+i['tier']+" "+i['rank']+" %dLP"%i['leaguePoints']+\
+	#	"\n승: %d 패: %d"%(i['wins'],i['losses'])+\
+	#	"\n승률: %.2lf%%"%(i['wins']/(i['wins']+i['losses'])*100)+\
+	#	"\n----------------\n"
+
+	#test=discord.Embed(title='My Embed Title', description='My Embed Content.', colour=0xDEADBF)
+	#test.set_author(name='Someone', icon_url=bot.user.default_avatar_url)
+	#await bot.say(msg)
+	#await bot.say(embed=test)
+
 
 
 
