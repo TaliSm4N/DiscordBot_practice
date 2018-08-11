@@ -27,6 +27,8 @@ bot = commands.Bot(command_prefix='!')
 # 1-6에서 생성된 토큰을 이곳에 입력해주세요.
 token = "NDczNzE3OTYzODkyMDY0Mjg2.DkGAYw.Q2xSsrR_JzJNFTxJnpAnyr4D_dQ"
 
+#lol_info.setDataSet()
+
 
 @bot.event
 async def on_ready():
@@ -100,20 +102,25 @@ async def pubg(*args):
 @bot.command()
 async def lol(*args):
 	#
-	print("========3=4=324=3=432=423=3=432=4==")
+	lol_info=lolInfo.Info()
 	if len(args)>0:
 		mode = args[0]
 	name=""
-	lol_info=lolInfo.Info()
-	check = 0
+	#lol_info=lolInfo.Info()
+
 	if mode=="id":
 		for i in args[1:]:
-			name += i
-			if check != 0:
-				name += "%20"
+			name += urllib.parse.quote_plus(i)
+			name += "%20"
+		print(name)
+		name=name[0:-3]
+
 		lol_info.setVersion()
 		lol_info.setInfo(name)
+		lol_info.setTopChamp()
 		lol_info.setSoloRank()
+		lol_info.setMatchList()
+		lol_info.setMatch()
 		msg=lol_info.message(0)
 		await bot.say(embed=msg)
 
