@@ -25,7 +25,7 @@ bot = commands.Bot(command_prefix='!')
 
 
 # 1-6에서 생성된 토큰을 이곳에 입력해주세요.
-token = "NDczNzE3OTYzODkyMDY0Mjg2.DkGAYw.Q2xSsrR_JzJNFTxJnpAnyr4D_dQ"
+token = "my_key"
 
 #lol_info.setDataSet()
 
@@ -74,7 +74,7 @@ async def num(ctx,member: discord.Member = None):
 
 	#time.sleep(1)
 	#await bot.say('숫자의 결과는 %d입니다'%number)
-	await bot.say(embed=msg)
+	#await bot.say(embed=msg)
 	msg=discord.Embed(title='숫자 뽑기 결과',description='%d'%number,colour=0xDEADBF)
 
 	if member.avatar_url=="":
@@ -114,15 +114,16 @@ async def lol(*args):
 			name += "%20"
 		print(name)
 		name=name[0:-3]
-
-		lol_info.setVersion()
-		lol_info.setInfo(name)
-		lol_info.setTopChamp()
-		lol_info.setSoloRank()
-		lol_info.setMatchList()
-		lol_info.setMatch()
-		msg=lol_info.message(0)
+		msg=lol_info.ID(name)
 		await bot.say(embed=msg)
+	elif mode == "champ":
+		for i in args[1:]:
+			name += i
+			name +=" "
+		name = name[0:-1]
+		msg=lol_info.setChampInfo(name)
+
+
 
 
 
