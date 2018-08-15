@@ -122,7 +122,7 @@ async def lol(*args):
 			name +=" "
 		name = name[0:-1]
 		msg=lol_info.setChampInfo(name)
-
+		await bot.say(embed=msg)
 
 
 

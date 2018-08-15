@@ -51,6 +51,7 @@ class Info:
 		finally:
 			self.version_url+=self.version
 			self.icon_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/img/profileicon/".format(self.version)
+			self.champ_icon_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/img/champion/".format(self.version)
 			print(self.icon_url)
 			#self.champ_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/data/ko_KR/champion.json".format(self.version[0])
 			#self.indiv_champ_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/data/ko_KR/champion/".format(self.version[0])
@@ -68,6 +69,7 @@ class Info:
 		print(self.info)
 		print("==============info==============")
 		self.msg.set_author(name=self.info['name'],icon_url=self.icon_url+str(self.info['profileIconId'])+".png")
+		self.msg.set_thumbnail(url=self.icon_url+str(self.info['profileIconId'])+".png")
 		self.msg.add_field(name="Level",value=str(self.info['summonerLevel']),inline=True)
 
 
@@ -124,9 +126,10 @@ class Info:
 
 		self.msg.add_field(name="솔로 랭크",value=solo_msg,inline=True)
 		self.msg.add_field(name="자유 랭크",value=team_msg,inline=True)
-		self.msg.add_field(name=".",value='.',inline=True)
+		#self.msg.add_field(name=".",value='.',inline=True)
 
 	def setChampInfo(self,name):
+		self.setVersion()
 		f=open("./info/json/champion.json")
 		a_champ=json.load(f)
 
@@ -134,13 +137,59 @@ class Info:
 			if a_champ["data"][i]["name"]==name:
 				key=i
 				print(name)
+				print(key)
 				break
-		close(f)
+		f.close()
 
 		f=open("./info/json/champion/"+key+".json")
 		champ=json.load(f)
-		close(f)
+		data=champ["data"][key]
+		f.close()
 
+		self.msg.set_author(name=name,icon_url=self.champ_icon_url+key+".png")
+		self.msg.set_thumbnail(url=self.champ_icon_url+key+".png")
+		self.msg.description=data["title"]
+
+		stat_msg=\
+		"체력: %s(+%s)\n"%(data["stats"]["hp"],data["stats"]["hpperlevel"])+\
+		"체력재생: %s(+%s)\n"%(data["stats"]["hpregen"],data["stats"]["hpregenperlevel"])
+
+		#print("%f"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17))
+		#print("%0.2f"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17))
+		#max_stat_msg=\
+		#"체력: %s\n"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17)+\
+		#"체력재생: %s\n"%(data["stats"]["hpregen"]+data["stats"]["hpregenperlevel"]*17)
+
+		if data["partype"]=="마나" or data["partype"]=="기력":#data["partype"]!="없음":
+			stat_msg+=\
+			"%s: %s(+%s)\n"%(data["partype"],data["stats"]["mp"],data["stats"]["mpperlevel"])+\
+			"%s재생: %s(+%s)\n"%(data["partype"],data["stats"]["mpregen"],data["stats"]["mpregenperlevel"])
+
+			#max_stat_msg+=\
+			#"%s: %s\n"%(data["partype"]+data["stats"]["mp"],data["stats"]["mpperlevel"]*17)+\
+			#"%s재생: %s\n"%(data["partype"]+data["stats"]["mpregen"],data["stats"]["mpregenperlevel"]*17)
+		stat_msg+="공격력: %s(+%s)\n"%(data["stats"]["attackdamage"],data["stats"]["attackdamageperlevel"])+\
+		"공격속도: %.3f(+%s%%)\n"%(0.625/(1+data["stats"]["attackspeedoffset"]),data["stats"]["attackspeedperlevel"])+\
+		"방어력: %s(+%s)\n"%(data["stats"]["armor"],data["stats"]["armorperlevel"])+\
+		"마법 저항력: %s(+%s)\n"%(data["stats"]["spellblock"],data["stats"]["spellblockperlevel"])+\
+		"이동속도: %s\n"%(data["stats"]["movespeed"])+\
+		"사거리: %s\n"%(data["stats"]["attackrange"])
+
+		#max_stat_msg+="공격력: %s\n"%(data["stats"]["attackdamage"]+data["stats"]["attackdamageperlevel"]*17)+\
+		#"공격속도: %.3f\n"%(0.625/(1+data["stats"]["attackspeedoffset"])*(1+data["stats"]["attackspeedperlevel"]*17/100))+\
+		#"방어력: %s\n"%(data["stats"]["armor"]+data["stats"]["armorperlevel"]*17)+\
+		#"마법 저항력: %s\n"%(data["stats"]["spellblock"]+data["stats"]["spellblockperlevel"]*17)+\
+		#"이동속도: %s\n"%(data["stats"]["movespeed"])+\
+		#"사거리: %s\n"%(data["stats"]["attackrange"])
+
+		self.msg.add_field(name="스텟",value=stat_msg,inline=True)
+		#self.msg.add_field(name="18렙 스텟",value=max_stat_msg,inline=True)
+
+
+
+		#print(champ["data"][key]["lore"])
+
+		return self.msg
 
 	#	self.champ_msg=\
 
@@ -218,7 +267,7 @@ class Info:
 				win_rate_msg = "%d승 %d패\n승률: %d%%\n "%(win,lose,win_rate)
 
 				self.msg.add_field(name="최근 %d게임"%(win+lose),value=win_rate_msg,inline=True)
-				self.msg.add_field(name=".",value='.',inline=True)
+				#self.msg.add_field(name=".",value='.',inline=True)
 
 
 	def setMyMatch(self,match,id):
@@ -256,7 +305,7 @@ class Info:
 		last_match_msg+="\n "
 
 		self.msg.add_field(name="마지막 게임",value=last_match_msg,inline=True)
-		self.msg.add_field(name=".",value='.',inline=True)
+		#self.msg.add_field(name=".",value='.',inline=True)
 
 	def setSpector(self):
 		url = self.spector_url+str(self.info['id'])+"?"+self.api_key
