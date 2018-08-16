@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 import urllib.request
 import urllib.parse
 
@@ -26,28 +27,55 @@ class Info:
 	#spell_url=u"https://kr.api.riotgames.com/lol/static-data/v3/summoner-spells"
 	#champ_url + "/" = 개별 챔피언 찾기
 	#champ_url=u"https://kr.api.riotgames.com/lol/static-data/v3/champions"
+	champ_url=u"https://kr.api.riotgames.com/lol/static-data/v3/champions?locale=ko_KR&dataById=true&"
 
 	locale_url="locale=ko_KR"#item champ
-	version_url="version="
 	solo=[]
 	team=[]
 	last_match={}
-	version = "8.15.1"
+	version = "8.16.1"
 
 	def __init__(self):
 		self.msg=discord.Embed()
 
+	def setDataSet(self):
+
+		#champion
+		url=self.champ_url+"tags=format&"+self.api_key
+
+		with open("./test/json/champion.json","w") as f:
+			response = urllib.request.urlopen(url)
+			print(response)
+			all_champ = json.load(response)
+			print(all_champ)
+
+			f.write(json.dumps(all_champ, ensure_ascii=False, indent="\t"))
+			url=self.champ_url+"tags=all&"+self.api_key
+			response = urllib.request.urlopen(url)
+			champ = json.load(response)
+
+			#API 호출 제한 10번밖에 안됨 --
+			#for i in champ["data"]:
+			#	print(i)
+			#	print(i["key"])
+			#	with open("./test/json/champion/"+i["key"]+".json") as f_c:
+			#		f_c.write(json.dumps(i,ensure_ascii=False, indent="\t"))
+
+
 
 	def setVersion(self):
 		print("setVersion")
+		print(self.version_url)
 		url=self.version_url+"?"+self.api_key
+		print(url)
 		try:
 			response = urllib.request.urlopen(url)
 			v = json.load(response)
 			self.version = v[0]
 
-		except:
+		except Exception as e:
 			print("version except")
+			print(e)
 		finally:
 			self.version_url+=self.version
 			self.icon_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/img/profileicon/".format(self.version)
@@ -57,13 +85,18 @@ class Info:
 			#self.indiv_champ_url=u"http://ddragon.leagueoflegends.com/cdn/{0}/data/ko_KR/champion/".format(self.version[0])
 
 	def setInfo(self,name):
-		name_url=name
+		name_url=urllib.parse.quote(name)
 		print("setInfo")
-		print(name)
-		print(name_url)
+		print("1:"+name)
+		print("2:"+name_url)
 		url=self.summoner_url+name_url+"?"+self.api_key
 		print(url)
-		response = urllib.request.urlopen(url)
+		try:
+			response = urllib.request.urlopen(url)
+		except urllib.error.HTTPError:
+			self.msg.set_author(name=name)
+			self.msg.description="%s에 해당하는 ID가 없거나 서버에 이상이 있습니다.\n다시 한 번 확인해주세요."%name
+			return False
 		self.info = json.load(response)
 		print("==============info==============")
 		print(self.info)
@@ -72,6 +105,7 @@ class Info:
 		self.msg.set_thumbnail(url=self.icon_url+str(self.info['profileIconId'])+".png")
 		self.msg.add_field(name="Level",value=str(self.info['summonerLevel']),inline=True)
 
+		return True
 
 	def setSoloRank(self):
 		url = self.league_url+str(self.info['id'])+"?"+self.api_key
@@ -133,57 +167,94 @@ class Info:
 		f=open("./info/json/champion.json")
 		a_champ=json.load(f)
 
+
 		for i in a_champ["data"]:
-			if a_champ["data"][i]["name"]==name:
-				key=i
+			if a_champ["data"][i]["name"]==name or a_champ["data"][i]["id"]==name:
+				key= a_champ["data"][i]["id"]
 				print(name)
 				print(key)
 				break
+
 		f.close()
 
-		f=open("./info/json/champion/"+key+".json")
+		try:
+			f=open("./info/json/champion/"+key+".json")
+		except UnboundLocalError:
+			self.msg.set_author(name=name)
+			self.msg.description="%s에 해당하는 챔피언이 없습니다.\n 혹시 신챔이라면 데이터 업데이트를 요청하십시오"%name
+			return self.msg
 		champ=json.load(f)
 		data=champ["data"][key]
 		f.close()
 
-		self.msg.set_author(name=name,icon_url=self.champ_icon_url+key+".png")
+		self.msg.set_author(name=data["name"]+"(%s)"%key,icon_url=self.champ_icon_url+key+".png")
 		self.msg.set_thumbnail(url=self.champ_icon_url+key+".png")
 		self.msg.description=data["title"]
+		self.msg.add_field(name="배경 스토리",value=data["lore"],inline=False)
 
+		#stat
 		stat_msg=\
-		"체력: %s(+%s)\n"%(data["stats"]["hp"],data["stats"]["hpperlevel"])+\
-		"체력재생: %s(+%s)\n"%(data["stats"]["hpregen"],data["stats"]["hpregenperlevel"])
+		"체력: %g(+%g)\n"%(data["stats"]["hp"],data["stats"]["hpperlevel"])+\
+		"체력재생: %g(+%g)\n"%(data["stats"]["hpregen"],data["stats"]["hpregenperlevel"])
 
 		#print("%f"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17))
 		#print("%0.2f"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17))
-		#max_stat_msg=\
-		#"체력: %s\n"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17)+\
-		#"체력재생: %s\n"%(data["stats"]["hpregen"]+data["stats"]["hpregenperlevel"]*17)
+		#print("%s"%str(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17))
+		#t="%0.2f"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17)
+		##print("%f"%t)
+		#print("%s"%str(t))
+
+		max_stat_msg=\
+		"체력: %g\n"%(data["stats"]["hp"]+data["stats"]["hpperlevel"]*17)+\
+		"체력재생: %g\n"%(data["stats"]["hpregen"]+data["stats"]["hpregenperlevel"]*17)
 
 		if data["partype"]=="마나" or data["partype"]=="기력":#data["partype"]!="없음":
 			stat_msg+=\
-			"%s: %s(+%s)\n"%(data["partype"],data["stats"]["mp"],data["stats"]["mpperlevel"])+\
-			"%s재생: %s(+%s)\n"%(data["partype"],data["stats"]["mpregen"],data["stats"]["mpregenperlevel"])
+			"%s: %g(+%g)\n"%(data["partype"],data["stats"]["mp"],data["stats"]["mpperlevel"])+\
+			"%s재생: %g(+%g)\n"%(data["partype"],data["stats"]["mpregen"],data["stats"]["mpregenperlevel"])
 
-			#max_stat_msg+=\
-			#"%s: %s\n"%(data["partype"]+data["stats"]["mp"],data["stats"]["mpperlevel"]*17)+\
-			#"%s재생: %s\n"%(data["partype"]+data["stats"]["mpregen"],data["stats"]["mpregenperlevel"]*17)
-		stat_msg+="공격력: %s(+%s)\n"%(data["stats"]["attackdamage"],data["stats"]["attackdamageperlevel"])+\
-		"공격속도: %.3f(+%s%%)\n"%(0.625/(1+data["stats"]["attackspeedoffset"]),data["stats"]["attackspeedperlevel"])+\
-		"방어력: %s(+%s)\n"%(data["stats"]["armor"],data["stats"]["armorperlevel"])+\
-		"마법 저항력: %s(+%s)\n"%(data["stats"]["spellblock"],data["stats"]["spellblockperlevel"])+\
-		"이동속도: %s\n"%(data["stats"]["movespeed"])+\
-		"사거리: %s\n"%(data["stats"]["attackrange"])
+			max_stat_msg+=\
+			"%s: %g\n"%(data["partype"],data["stats"]["mp"]+data["stats"]["mpperlevel"]*17)+\
+			"%s재생: %g\n"%(data["partype"],data["stats"]["mpregen"]+data["stats"]["mpregenperlevel"]*17)
+		stat_msg+="공격력: %g(+%g)\n"%(data["stats"]["attackdamage"],data["stats"]["attackdamageperlevel"])+\
+		"공격속도: %.3f(+%g%%)\n"%(0.625/(1+data["stats"]["attackspeedoffset"]),data["stats"]["attackspeedperlevel"])+\
+		"방어력: %g(+%g)\n"%(data["stats"]["armor"],data["stats"]["armorperlevel"])+\
+		"마법 저항력: %g(+%g)\n"%(data["stats"]["spellblock"],data["stats"]["spellblockperlevel"])+\
+		"이동속도: %g\n"%(data["stats"]["movespeed"])+\
+		"사거리: %g\n"%(data["stats"]["attackrange"])
 
-		#max_stat_msg+="공격력: %s\n"%(data["stats"]["attackdamage"]+data["stats"]["attackdamageperlevel"]*17)+\
-		#"공격속도: %.3f\n"%(0.625/(1+data["stats"]["attackspeedoffset"])*(1+data["stats"]["attackspeedperlevel"]*17/100))+\
-		#"방어력: %s\n"%(data["stats"]["armor"]+data["stats"]["armorperlevel"]*17)+\
-		#"마법 저항력: %s\n"%(data["stats"]["spellblock"]+data["stats"]["spellblockperlevel"]*17)+\
-		#"이동속도: %s\n"%(data["stats"]["movespeed"])+\
-		#"사거리: %s\n"%(data["stats"]["attackrange"])
+		max_stat_msg+="공격력: %g\n"%(data["stats"]["attackdamage"]+data["stats"]["attackdamageperlevel"]*17)+\
+		"공격속도: %.3f\n"%(0.625/(1+data["stats"]["attackspeedoffset"])*(1+data["stats"]["attackspeedperlevel"]*17/100))+\
+		"방어력: %g\n"%(data["stats"]["armor"]+data["stats"]["armorperlevel"]*17)+\
+		"마법 저항력: %g\n"%(data["stats"]["spellblock"]+data["stats"]["spellblockperlevel"]*17)+\
+		"이동속도: %g\n"%(data["stats"]["movespeed"])+\
+		"사거리: %g\n"%(data["stats"]["attackrange"])
 
 		self.msg.add_field(name="스텟",value=stat_msg,inline=True)
-		#self.msg.add_field(name="18렙 스텟",value=max_stat_msg,inline=True)
+		self.msg.add_field(name="18렙 스텟",value=max_stat_msg,inline=True)
+
+		#skill
+
+		passive_msg = data["passive"]["description"]
+		#passive_msg.replace("<br><br>","\n")
+		#print(passive_msg.find("<br>"))
+		#passive_msg.strip("<br>")
+
+		index=passive_msg.find("<")
+		while index!=-1:
+			end=passive_msg.find(">")
+			passive_msg=passive_msg[0:index-1]+"\n"+passive_msg[end+1:]
+			index=passive_msg.find("<")
+
+		self.msg.add_field(name="패시브: %s"%data["passive"]["name"],value=passive_msg,inline=False)
+
+
+		self.msg.add_field(name="Q: %s"%data["spells"][0]["name"],value=data["spells"][0]["description"],inline=False)
+		self.msg.add_field(name="W: %s"%data["spells"][1]["name"],value=data["spells"][0]["description"],inline=False)
+		self.msg.add_field(name="E: %s"%data["spells"][2]["name"],value=data["spells"][0]["description"],inline=False)
+		self.msg.add_field(name="R: %s"%data["spells"][3]["name"],value=data["spells"][0]["description"],inline=False)
+
+		self.msg.set_footer(text="lol version %s"%self.version)
 
 
 
@@ -197,8 +268,7 @@ class Info:
 
 
 
-	def setDataSet(self):
-		pass
+
 
 	def setTopChamp(self):
 		url=self.mastery_url+str(self.info['id'])+"?"+self.api_key
@@ -337,11 +407,11 @@ class Info:
 		f.close()
 		f2.close()
 		self.setVersion()
-		self.setInfo(name)
-		self.setMatchList(20)
-		self.setSoloRank()
-		self.setTopChamp()
-		self.setMyMatch(self.last_match,self.id)
-		self.setSpector()
+		if self.setInfo(name)==True:
+			self.setMatchList(20)
+			self.setSoloRank()
+			self.setTopChamp()
+			self.setMyMatch(self.last_match,self.id)
+			self.setSpector()
 
 		return self.msg

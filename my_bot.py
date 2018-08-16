@@ -6,8 +6,9 @@ import asyncio
 import discord
 import random
 import time
-import pypubg
+#import pypubg
 import lolInfo
+import dota2api
 
 from discord.ext import commands
 
@@ -100,29 +101,72 @@ async def pubg(*args):
 		profile=args[0]
 
 @bot.command()
+async def 롤(*args):
+	await lol(args)
+
+@bot.command()
 async def lol(*args):
-	#
+
+	token_msg=\
+	"(msg) -> msg를 필수적으로 입력하지 않아도 됩니다.\n"+\
+	"A/B/C.. -> A,B,C,... 중 하나만 입력해야합니다.\n"+\
+	"[msg] -> 명령어에 맞게 msg를 반드시 입력해야합니다.\n"
+	command_msg=\
+	"!lol (?/help/도움) : !lol명령어의 도움말을 출력합니다.\n"+\
+	"!lol id/계정 [소환사명] : 해당 소환사의 정보를 가져옵니다.\n"+\
+	"!lol champ/챔프/챔 [챔피언이름] : 해당 챔피언의 정보를 가져옵니다.\n"
+
 	lol_info=lolInfo.Info()
 	if len(args)>0:
 		mode = args[0]
+	else:
+		e=discord.Embed(title="!lol 도움말",description=command_msg)
+		e.add_field(name="기호 안내",value=token_msg)
+
+		await bot.say(embed=e)
+		return
 	name=""
 	#lol_info=lolInfo.Info()
 
-	if mode=="id":
+
+	if mode=="id" or mode=="계정":
 		for i in args[1:]:
-			name += urllib.parse.quote_plus(i)
-			name += "%20"
-		print(name)
-		name=name[0:-3]
+			name += i
+			name += " "
+		print("first:"+name)
+		name=name[0:-1]
+		print("second:"+name)
 		msg=lol_info.ID(name)
 		await bot.say(embed=msg)
-	elif mode == "champ":
+	elif mode == "champ" or mode=="챔프" or mode=="챔":
 		for i in args[1:]:
 			name += i
 			name +=" "
+
 		name = name[0:-1]
+		print(name)
 		msg=lol_info.setChampInfo(name)
 		await bot.say(embed=msg)
+	elif mode=="업뎃" or mode=="update":
+		lol_info.setDataSet()
+		await bot.say("완료")
+	elif mode=="help" or mode=="?" or mode=="도움":
+		e=discord.Embed(title="!lol 도움말",description=command_msg)
+		e.add_field(name="기호 안내",value=token_msg)
+		await bot.say(embed=e)
+	else:
+		error_msg="!lol %s"%mode
+		for i in args[1:]:
+			error_msg += i
+			error_msg +=" "
+		e=discord.Embed(title="없는 명령",description=error_msg)
+		e.add_field(name="!lol 도움말",value=command_msg)
+		e.add_field(name="기호 안내",value=token_msg)
+		await bot.say(embed=e)
+
+@bot.command()
+async def dota(*args):
+	pass
 
 
 
