@@ -8,18 +8,21 @@ import random
 import time
 #import pypubg
 import lolInfo
-import dota2api
+import DotaInfo
+#import dota2api
 
 from discord.ext import commands
 
 import json
 import urllib.request
 import urllib.parse
+from collections import OrderedDict
 
 
 #client = discord.Client()
 
 bot = commands.Bot(command_prefix='!')
+lol_info=lolInfo.Info()
 #image=open("./tier-icons/Provisional.png", "rb")
 #ima=image.read()
 #tester=bot.create_custom_emoji(discord.server,name="name",image=ima)
@@ -38,7 +41,16 @@ async def on_ready():
 	print('ID : {0}'.format(bot.user.id))
 	print('='*10)
 
-
+@bot.command()
+async def lolApiKey(*args):
+	if len(args)>0:
+		key = args[0]
+	else:
+		print("non_key")
+		await bot.say("key not found")
+		return
+	lol_info.setAPIKey(key)
+	await bot.say("lol api key update")
 
 @bot.command(pass_context=True)
 async def test(ctx):
@@ -104,8 +116,8 @@ async def pubg(*args):
 async def 롤(*args):
 	await lol(args)
 
-@bot.command()
-async def lol(*args):
+@bot.command(pass_context=True)
+async def lol(ctx,*args,member: discord.Member = None):
 
 	token_msg=\
 	"(msg) -> msg를 필수적으로 입력하지 않아도 됩니다.\n"+\
@@ -116,57 +128,101 @@ async def lol(*args):
 	"!lol id/계정 [소환사명] : 해당 소환사의 정보를 가져옵니다.\n"+\
 	"!lol champ/챔프/챔 [챔피언이름] : 해당 챔피언의 정보를 가져옵니다.\n"
 
-	lol_info=lolInfo.Info()
+#	lol_info=lolInfo.Info()
 	if len(args)>0:
 		mode = args[0]
+		name=""
+
+		if mode=="id" or mode=="계정":
+			for i in args[1:]:
+				name += i
+				name += " "
+			print("first:"+name)
+			name=name[0:-1]
+			print("second:"+name)
+			msg=lol_info.ID(name)
+			await bot.say(embed=msg)
+		elif mode == "champ" or mode=="챔프" or mode=="챔":
+			for i in args[1:]:
+				name += i
+				name +=" "
+
+			name = name[0:-1]
+			print(name)
+			msg=lol_info.setChampInfo(name)
+			await bot.say(embed=msg)
+		elif mode=="업뎃" or mode=="update":
+			lol_info.setDataSet()
+			await bot.say("완료")
+		elif mode=="help" or mode=="?" or mode=="도움":
+			e=discord.Embed(title="!lol 도움말",description=command_msg)
+			e.add_field(name="기호 안내",value=token_msg)
+			await bot.say(embed=e)
+		elif mode=="item" or mode=="템" or mode=="아이템":
+			pass
+		elif mode=="live" or mode=="실시간" or mode=="라이브":
+			pass
+		elif mode=="프로필" or mode=="profile":
+			member=ctx.message.author
+			for i in args[1:]:
+				name += i
+				name +=" "
+			name = name[0:-1]
+			if name=="":
+				with open("./test/json/profile.json","r") as f:
+					data=json.load(f)
+
+					try:
+						name=data[member.id]
+						msg=lol_info.ID(name)
+						await bot.say(embed=msg)
+					except KeyError:
+						e=discord.Embed(title="미등록 상태",description="등록된 계정이 없습니다.\n!lol profile [소환사명]을 입력하시고 등록해주세요")
+						await bot.say(embed=e)
+						#lol_info.clearMSG()
+			else:
+				with open("./test/json/profile.json","r") as f:
+					data=json.load(f)
+				with open("./test/json/profile.json","w") as f:
+					#data=OrderedDict()
+					data[member.id]=name
+					f.write(json.dumps(data,ensure_ascii=False,indent='\t'))
+				e=discord.Embed(title="등록 완료",description="%s님의 롤 프로필을 %s로 등록했습니다."%(member.nick,name))
+				await bot.say(embed=e)
+			print(member)
+			print(member.id)
+		else:
+			error_msg="!lol %s"%mode
+			for i in args[1:]:
+				error_msg += i
+				error_msg +=" "
+			e=discord.Embed(title="없는 명령",description=error_msg)
+			e.add_field(name="!lol 도움말",value=command_msg)
+			e.add_field(name="기호 안내",value=token_msg)
+			await bot.say(embed=e)
 	else:
 		e=discord.Embed(title="!lol 도움말",description=command_msg)
 		e.add_field(name="기호 안내",value=token_msg)
 
 		await bot.say(embed=e)
-		return
-	name=""
+
 	#lol_info=lolInfo.Info()
 
+	lol_info.clearMSG()
 
-	if mode=="id" or mode=="계정":
-		for i in args[1:]:
-			name += i
-			name += " "
-		print("first:"+name)
-		name=name[0:-1]
-		print("second:"+name)
-		msg=lol_info.ID(name)
-		await bot.say(embed=msg)
-	elif mode == "champ" or mode=="챔프" or mode=="챔":
-		for i in args[1:]:
-			name += i
-			name +=" "
 
-		name = name[0:-1]
-		print(name)
-		msg=lol_info.setChampInfo(name)
-		await bot.say(embed=msg)
-	elif mode=="업뎃" or mode=="update":
-		lol_info.setDataSet()
-		await bot.say("완료")
-	elif mode=="help" or mode=="?" or mode=="도움":
-		e=discord.Embed(title="!lol 도움말",description=command_msg)
-		e.add_field(name="기호 안내",value=token_msg)
-		await bot.say(embed=e)
-	else:
-		error_msg="!lol %s"%mode
-		for i in args[1:]:
-			error_msg += i
-			error_msg +=" "
-		e=discord.Embed(title="없는 명령",description=error_msg)
-		e.add_field(name="!lol 도움말",value=command_msg)
-		e.add_field(name="기호 안내",value=token_msg)
-		await bot.say(embed=e)
+	#print(member.display_name)
+	#print(member)
+	#print(member.id)
+
 
 @bot.command()
 async def dota(*args):
-	pass
+	#api=dota2api.Initialise(api_key="AA2F90BE401331D968D6A2B5A58B20D8",language="ko_KR",raw_mode=True)
+	#print(json.dumps(api.get_heroes(), ensure_ascii=False, indent="\t"))
+	#print(json.dumps(api.get_match_details(4062837767), ensure_ascii=False, indent="\t"))
+	dota_info=DotaInfo.Info()
+	dota_info.setDataSet()
 
 
 

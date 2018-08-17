@@ -4,10 +4,10 @@ import urllib.request
 import urllib.parse
 
 
-import asyncio
+#import asyncio
 import discord
 
-from discord.ext import commands
+#from discord.ext import commands
 
 
 class Info:
@@ -38,6 +38,13 @@ class Info:
 	def __init__(self):
 		self.msg=discord.Embed()
 
+	def setAPIKey(self,key):
+		self.api_key="api_key="+key
+
+	def clearMSG(self):
+		self.msg=discord.Embed()
+
+
 	def setDataSet(self):
 
 		#champion
@@ -55,11 +62,12 @@ class Info:
 			champ = json.load(response)
 
 			#API 호출 제한 10번밖에 안됨 --
-			#for i in champ["data"]:
-			#	print(i)
-			#	print(i["key"])
-			#	with open("./test/json/champion/"+i["key"]+".json") as f_c:
-			#		f_c.write(json.dumps(i,ensure_ascii=False, indent="\t"))
+			for i in champ["data"]:
+				print(i)
+				#print(i["key"])
+				with open("./test/json/champion/"+champ["data"][i]["key"]+".json") as f_c:
+					print(champ["data"][i])
+					f_c.write(json.dumps(champ["data"][i],ensure_ascii=False, indent="\t"),"w")
 
 
 
@@ -93,9 +101,10 @@ class Info:
 		print(url)
 		try:
 			response = urllib.request.urlopen(url)
-		except urllib.error.HTTPError:
+		except urllib.error.HTTPError as e:
 			self.msg.set_author(name=name)
 			self.msg.description="%s에 해당하는 ID가 없거나 서버에 이상이 있습니다.\n다시 한 번 확인해주세요."%name
+			print(e)
 			return False
 		self.info = json.load(response)
 		print("==============info==============")
@@ -164,7 +173,7 @@ class Info:
 
 	def setChampInfo(self,name):
 		self.setVersion()
-		f=open("./info/json/champion.json")
+		f=open("./lol_info/json/champion.json")
 		a_champ=json.load(f)
 
 
@@ -178,7 +187,7 @@ class Info:
 		f.close()
 
 		try:
-			f=open("./info/json/champion/"+key+".json")
+			f=open("./lol_info/json/champion/"+key+".json")
 		except UnboundLocalError:
 			self.msg.set_author(name=name)
 			self.msg.description="%s에 해당하는 챔피언이 없습니다.\n 혹시 신챔이라면 데이터 업데이트를 요청하십시오"%name
@@ -280,7 +289,7 @@ class Info:
 
 		master_msg="전체 숙련도: [%d]\n"%total_master
 
-		#f2=open("./info/json/queueid.json")
+		#f2=open("./lol_info/json/queueid.json")
 
 		#queue=json.load(f2)
 		try:
@@ -349,7 +358,9 @@ class Info:
 		min = int(match["gameDuration"]/60)
 		sec = match["gameDuration"]%60
 
-		last_match_msg=self.queue[str(match["queueId"])]+" "
+		last_match_msg=\
+		"매치번호: %d\n"%match["gameId"]+\
+		self.queue[str(match["queueId"])]+" "
 		if match["participants"][id]["stats"]["win"] == True:
 			last_match_msg+="<승> "
 		else:
@@ -357,7 +368,7 @@ class Info:
 		last_match_msg+="(%d분 %d초)\n"%(min,sec)
 		for i in self.champ['data']:
 			if int(self.champ['data'][i]['key'])==match["participants"][id]["championId"]:
-				last_match_msg+=self.champ['data'][i]['name']+" "+str(match["participants"][id]["stats"]["champLevel"])+"\n"
+				last_match_msg+=self.champ['data'][i]['name']+" <%d>"%(match["participants"][id]["stats"]["champLevel"])+"\n"
 				break
 		last_match_msg+="KDA:%d/%d/%d "%(match["participants"][id]["stats"]["kills"],match["participants"][id]["stats"]["deaths"],match["participants"][id]["stats"]["assists"])+\
 		"[CS %d]\n"%(match["participants"][id]["stats"]["totalMinionsKilled"]+match["participants"][id]["stats"]["neutralMinionsKilled"])
@@ -372,7 +383,7 @@ class Info:
 
 		if match["participants"][id]["stats"]["pentaKills"]!=0:
 			last_match_msg+="펜타킬 "
-		last_match_msg+="\n "
+		last_match_msg+="\n"
 
 		self.msg.add_field(name="마지막 게임",value=last_match_msg,inline=True)
 		#self.msg.add_field(name=".",value='.',inline=True)
@@ -400,8 +411,8 @@ class Info:
 			self.msg.add_field(name="진행 중인 게임",value=spector_msg,inline=False)
 
 	def ID(self,name=""):
-		f=open("./info/json/champion.json")
-		f2=open("./info/json/queueid.json")
+		f=open("./lol_info/json/champion.json")
+		f2=open("./lol_info/json/queueid.json")
 		self.champ=json.load(f)
 		self.queue=json.load(f2)
 		f.close()
